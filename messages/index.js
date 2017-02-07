@@ -93,37 +93,37 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 
 bot.dialog('/', intents);    
 bot.dialog('/Checkout',[
-    function (session) {
-
-        builder.Prompts.text(session,'May I know whose the name your room is booked under?');
-    },
-    function (session, results) { 
-        session.userData.Name = results.response;
+    function(session){
+        session.beginDialog('/RoomName');
         session.beginDialog('RoomNoValidation');
-        if(session.userData.RoomNo == '')
-        {
-            session.endDialog();
-        }
-    },
-    function(session,results){
+        
         session.send('Please wait while I am processing your checkout');
         if(session.userData.RoomNo == '8888' && session.userData.Name == 'David'){
-            beginDialog('CheckoutDone');
+            session.beginDialog('CheckoutDone');
             session.endDialog();
         }
         if(session.userData.RoomNo == '9999' && session.userData.Name == 'Aimee'){
-            beginDialog('CheckoutDoneCounter');
+            session.beginDialog('CheckoutDoneCounter');
             session.endDialog();
         }
         else{
-            if(session.userData.tried > 0 && session.userData.tried < 3) {
-                
-            }
+            session.beginDialog('12Attemp');
+
         }
-        
+    }
+]);
+
+function ValidateMe(RoomNo,RoomName,BookingConfirm){
+    if(RoomNo == '8888' && RoomName == 'David'){
+        return "A";
+    }
+    if(session.userData.RoomNo == '9999' && session.userData.Name == 'Aimee'){
+        return "B";
+    }
+    if(session.userData.BookingConfirm == '9999' && session.userData.RoomName == 'Aimee'){
 
     }
-])
+}
 
 bot.dialog('/RoomName')[
     function(session){
@@ -134,6 +134,7 @@ bot.dialog('/RoomName')[
         session.endDialog();
     }
 ]
+
 bot.dialog('/RoomNoValidation', [
     function (session) {
         session.userData.RoomNo = "";
