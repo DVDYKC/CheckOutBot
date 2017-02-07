@@ -76,10 +76,11 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     },
     function (session, results) {
         if (results.response) {
-            session.send('Please proceed to the lobby. Our bell boy will call a cab for you.');
+            session.beginDialog('/Checkout');
             return session.endDialog();
         } else {
             //return session.beginDialog('withoutroomreservations');
+            return session.endDialog();
         }
     }   
 ])
@@ -93,12 +94,12 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 bot.dialog('/', intents);    
 bot.dialog('/Checkout',[
     function (session) {
+
         builder.Prompts.text(session,'May I know whose the name your room is booked under?');
     },
     function (session, results) { 
         session.userData.Name = results.response;
-        session.userData.tried = 0;
-        beginDialog('RoomNoValidation');
+        session.beginDialog('RoomNoValidation');
         if(session.userData.RoomNo == '')
         {
             session.endDialog();
@@ -110,13 +111,29 @@ bot.dialog('/Checkout',[
             beginDialog('CheckoutDone');
             session.endDialog();
         }
-        if(session.userData.RoomNo == '8888' || session.userData.Name == 'David'){
-
+        if(session.userData.RoomNo == '9999' && session.userData.Name == 'Aimee'){
+            beginDialog('CheckoutDoneCounter');
+            session.endDialog();
         }
+        else{
+            if(session.userData.tried > 0 && session.userData.tried < 3) {
+                
+            }
+        }
+        
 
     }
 ])
 
+bot.dialog('/RoomName')[
+    function(session){
+        builder.Prompts.text(session,'May I know whose the name your room is booked under?');
+    },
+    function(session,results){
+        session.userData.Name = results.response;
+        session.endDialog();
+    }
+]
 bot.dialog('/RoomNoValidation', [
     function (session) {
         session.userData.RoomNo = "";
@@ -160,6 +177,13 @@ bot.dialog('/RoomNoValidation', [
 bot.dialog('/CheckoutDone',[
     function(session){
 
+    }
+]);
+
+bot.dialog('/CheckoutDoneCounter',[
+    function(session){
+        builder.send('Sorry you would need to check out from our front desk to get your final bill');
+        builder.endDialog();
     }
 ]);
 
