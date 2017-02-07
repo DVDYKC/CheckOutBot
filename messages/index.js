@@ -91,6 +91,77 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 });
 
 bot.dialog('/', intents);    
+bot.dialog('/Checkout',[
+    function (session) {
+        builder.Prompts.text(session,'May I know whose the name your room is booked under?');
+    },
+    function (session, results) { 
+        session.userData.Name = results.response;
+        session.userData.tried = 0;
+        beginDialog('RoomNoValidation');
+        if(session.userData.RoomNo == '')
+        {
+            session.endDialog();
+        }
+    },
+    function(session,results){
+        session.send('Please wait while I am processing your checkout');
+        if(session.userData.RoomNo == '8888' && session.userData.Name == 'David'){
+            beginDialog('CheckoutDone');
+            session.endDialog();
+        }
+        if(session.userData.RoomNo == '8888' || session.userData.Name == 'David'){
+
+        }
+
+    }
+])
+
+bot.dialog('/RoomNoValidation', [
+    function (session) {
+        session.userData.RoomNo = "";
+        builder.Prompts.text(session, 'Can you please provide your room number and tower? For example 1221-2');
+    },
+    function (session, results) {        
+        // Validate Mask
+        var DataInput = session.userData.RoomNo;
+        var RoomNo = DataInput.substring(0,4);
+        var Dash = DataInput.substring(4,5);
+        var Tower = DataInput.substring(5,6);
+        
+        if(!isNaN(RoomNo) && !isNaN(Tower)){
+            session.userData.RoomNo = results.response;
+            session.endDialog();
+        }        
+    },
+    function(session){
+        builder.Prompts.text(session, 'Please enter room number in this format ROOM NUMBER-TOWER NUMBER');
+    },
+    function (session, results) {        
+        session.userData.RoomNo = results.response;
+        // Validate Mask
+        var DataInput = session.userData.RoomNo;
+        var RoomNo = DataInput.substring(0,4);
+        var Dash = DataInput.substring(4,5);
+        var Tower = DataInput.substring(5,6);
+        
+        if(!isNaN(RoomNo) && !isNaN(Tower)){
+            session.userData.RoomNo = results.response;
+            session.endDialog();
+        }
+        else {
+            session.userData.RoomNo = '';
+            builder.send('Your room number looks wrong. Please proceed to the checkout counter to checkout');
+            session.endDialog();
+        }       
+    },
+]);
+
+bot.dialog('/CheckoutDone',[
+    function(session){
+
+    }
+]);
 
 if (useEmulator) {
     var restify = require('restify');
