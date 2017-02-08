@@ -94,38 +94,61 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
 bot.dialog('/', intents);    
 bot.dialog('/Checkout',[
     function(session){
-        session.beginDialog('/RoomName');
-        session.beginDialog('RoomNoValidation');
-        
-        session.send('Please wait while I am processing your checkout');
-        if(session.userData.RoomNo == '8888' && session.userData.Name == 'David'){
-            session.beginDialog('CheckoutDone');
+        switch(session.userData.tried){
+            case '0':                
+                session.beginDialog('/RoomName');
+                session.beginDialog('/RoomNoValidation');                
+                break;
+            case '1':
+            case '2':
+                session.beginDialog('/RoomNameorBook');
+                session.beginDialog('/RoomNoValidation');
+                break;
+            case '3':
+                session.send('Sorry I cant find your record in our system. Please note that you are only allowed 4 express check out attempt. Kindly provide whose the name your room is booked under? Or your booking confirmatin number?');
+                session.beginDialog('/RoomNameorBook');
+                session.beginDialog('/RoomNoValidation');
+                break;
+            case '4':
+                session.send('Sorry I cant find your record in our system please proceed to checkout at the front desk');
+                session.endDialog();
+                break;
+        }
+        if(session.userData.tried < 4){
+            session.send('Please wait while I am processing your checkout');
+            var result = ValidateMe(session.userData.RoomNo,session.userdata.Name)
+            if(result == 'A' || result == 'B'){
+                if(result == 'A'){
+                    session.beginDialog('/ConfirmCheckout');
+                }
+                if(result == 'B'){
+                    session.beginDialog('/CheckoutDoneCounter');
+                }
+                session.endDialog();
+            }else{
+                session.userData.tried = session.userData.tried + 1;
+            }
+        } else {
+            session.send('Sorry I cant find your record in our system please proceed to checkout at the front desk');
             session.endDialog();
         }
-        if(session.userData.RoomNo == '9999' && session.userData.Name == 'Aimee'){
-            session.beginDialog('CheckoutDoneCounter');
-            session.endDialog();
-        }
-        else{
-            session.beginDialog('12Attemp');
-
-        }
-    }
+    }        
 ]);
 
-function ValidateMe(RoomNo,RoomName,BookingConfirm){
-    if(RoomNo == '8888' && RoomName == 'David'){
-        return "A";
-    }
-    if(session.userData.RoomNo == '9999' && session.userData.Name == 'Aimee'){
-        return "B";
-    }
-    if(session.userData.BookingConfirm == '9999' && session.userData.RoomName == 'Aimee'){
-
+function ValidateMe(RoomNo,RoomName){
+    switch(RoomNo + "||" + RoomName){
+        case '8888-1||David':
+            return A;
+        case '9999-1||Aimee':
+            return B;
+        case 'ABCDE||David':
+            return A;
+        default:
+            return C;
     }
 }
 
-bot.dialog('/RoomName')[
+bot.dialog('/RoomName',[
     function(session){
         builder.Prompts.text(session,'May I know whose the name your room is booked under?');
     },
@@ -133,7 +156,17 @@ bot.dialog('/RoomName')[
         session.userData.Name = results.response;
         session.endDialog();
     }
-]
+]);
+
+bot.dialog('/RoomNameorBook',[
+    function(session){
+        builder.Prompts.text(session,'Sorry I cant find your record in our system please provide whose the name your room is booked under? Or your booking confirmatin number?');
+    },
+    function(session,results){
+        session.userData.Name = results.response;
+        session.endDialog();
+    }
+]);
 
 bot.dialog('/RoomNoValidation', [
     function (session) {
@@ -175,9 +208,45 @@ bot.dialog('/RoomNoValidation', [
     },
 ]);
 
-bot.dialog('/CheckoutDone',[
-    function(session){
+bot.dialog('/ConfirmCheckout',[
+    function (session) {
+        // heroCard
+        builder.Prompts.confirm(
+            session,
+            'This is your final bill, if you have any clarification on the outstanding amount, please reply No and proceed to the front desk for check out, else please reply YES CHECKOUT',
+            {
+                listStyle: builder.ListStyle.button
+            });
+    },
+    function (session, results) {
+        if (results.response) {
+            session.beginDialog('/SentBellboy');
+            return session.endDialog();
+        } else {
+            session.send('Sorry you would need to check out from our front desk to get your final bill');
+            return session.endDialog();
+        }
+    }
+]);
 
+bot.dialog('/SentBellboy',[
+    function (session) {
+        // heroCard
+        builder.Prompts.confirm(
+            session,
+            'Do you wish me to send a bell boy over to help on your luggage. Please answer yes or no',
+            {
+                listStyle: builder.ListStyle.button
+            });
+    },
+    function (session, results) {
+        if (results.response) {
+            session.send('I’ll send the bellboy over');
+            return session.endDialog();
+        } else {
+            session.send('Okay. Thank you.');
+            return session.endDialog();
+        }
     }
 ]);
 
