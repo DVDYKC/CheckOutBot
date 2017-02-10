@@ -76,6 +76,7 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
     },
     function (session, results) {
         if (results.response) {
+            session.userData.tried =0;
             session.beginDialog('/Checkout');
             return session.endDialog();
         } else {
@@ -95,28 +96,29 @@ bot.dialog('/', intents);
 bot.dialog('/Checkout',[
     function(session){
         switch(session.userData.tried){
-            case '0':                
-                session.beginDialog('/RoomName');
-                session.beginDialog('/RoomNoValidation');                
-                break;
-            case '1':
-            case '2':
-                session.beginDialog('/RoomNameorBook');
-                session.beginDialog('/RoomNoValidation');
-                break;
-            case '3':
-                session.send('Sorry I cant find your record in our system. Please note that you are only allowed 4 express check out attempt. Kindly provide whose the name your room is booked under? Or your booking confirmatin number?');
-                session.beginDialog('/RoomNameorBook');
-                session.beginDialog('/RoomNoValidation');
-                break;
-            case '4':
+            case 0:                
+                return session.beginDialog('/RoomName');
+            case 1:
+            case 2:
+                return session.beginDialog('/RoomNameorBook');
+            case 3:
+                session.send('Sorry I cant find your record in our system. Please note that you are only allowed 4 express check out attempt.');
+                return session.beginDialog('/RoomNameorBook');
+            case 4:
                 session.send('Sorry I cant find your record in our system please proceed to checkout at the front desk');
-                session.endDialog();
-                break;
+                return session.endDialog();
+        }
+    },
+    function(session,result){
+        session.beginDialog('/RoomNoValidation'); 
+    },
+    function(session,result){
+        if(session.userData.RoomNo == ''){
+            return session.endDialog();
         }
         if(session.userData.tried < 4){
             session.send('Please wait while I am processing your checkout');
-            var result = ValidateMe(session.userData.RoomNo,session.userdata.Name)
+            var result = ValidateMe(session.userData.RoomNo,session.userData.Name)
             if(result == 'A' || result == 'B'){
                 if(result == 'A'){
                     session.beginDialog('/ConfirmCheckout');
@@ -124,27 +126,28 @@ bot.dialog('/Checkout',[
                 if(result == 'B'){
                     session.beginDialog('/CheckoutDoneCounter');
                 }
-                session.endDialog();
+                // session.endDialog();
             }else{
                 session.userData.tried = session.userData.tried + 1;
+                session.beginDialog('/Checkout');
             }
         } else {
             session.send('Sorry I cant find your record in our system please proceed to checkout at the front desk');
             session.endDialog();
         }
-    }        
+    }
 ]);
 
 function ValidateMe(RoomNo,RoomName){
     switch(RoomNo + "||" + RoomName){
         case '8888-1||David':
-            return A;
+            return 'A';
         case '9999-1||Aimee':
-            return B;
+            return 'B';
         case 'ABCDE||David':
-            return A;
+            return 'A';
         default:
-            return C;
+            return 'C';
     }
 }
 
@@ -175,18 +178,24 @@ bot.dialog('/RoomNoValidation', [
     },
     function (session, results) {        
         // Validate Mask
+        session.userData.RoomNo ="Empty";
+        session.userData.RoomNo = results.response;
         var DataInput = session.userData.RoomNo;
         var RoomNo = DataInput.substring(0,4);
         var Dash = DataInput.substring(4,5);
         var Tower = DataInput.substring(5,6);
         
         if(!isNaN(RoomNo) && !isNaN(Tower)){
+            console.log('checkNo---------------------------');
+            console.log(RoomNo);
+            console.log(Tower);
             session.userData.RoomNo = results.response;
             session.endDialog();
-        }        
-    },
-    function(session){
-        builder.Prompts.text(session, 'Please enter room number in this format ROOM NUMBER-TOWER NUMBER');
+        }else
+        {
+            console.log('checkNo***************************');
+            builder.Prompts.text(session, 'Please enter room number in this format ROOM NUMBER-TOWER NUMBER');
+        }       
     },
     function (session, results) {        
         session.userData.RoomNo = results.response;
@@ -202,36 +211,29 @@ bot.dialog('/RoomNoValidation', [
         }
         else {
             session.userData.RoomNo = '';
-            builder.send('Your room number looks wrong. Please proceed to the checkout counter to checkout');
+            session.send('Your room number looks wrong. Please proceed to the checkout counter to checkout');
             session.endDialog();
         }       
     },
 ]);
 
-bot.dialog('/ConfirmCheckout',[
+bot.dialog('/ConfirmCheckout', [
     function (session) {
         // heroCard
-        builder.Prompts.confirm(
-            session,
-            'This is your final bill, if you have any clarification on the outstanding amount, please reply No and proceed to the front desk for check out, else please reply YES CHECKOUT',
-            {
-                listStyle: builder.ListStyle.button
-            });
+        builder.Prompts.confirm(session,'This is your final bill, if you have any clarification on the outstanding amount, please reply No and proceed to the front desk for check out, else please reply YES CHECKOUT',
+        {listStyle: builder.ListStyle.button});
     },
     function (session, results) {
         if (results.response) {
             session.beginDialog('/SentBellboy');
-            return session.endDialog();
         } else {
             session.send('Sorry you would need to check out from our front desk to get your final bill');
-            return session.endDialog();
         }
-    }
+    },
 ]);
 
 bot.dialog('/SentBellboy',[
     function (session) {
-        // heroCard
         builder.Prompts.confirm(
             session,
             'Do you wish me to send a bell boy over to help on your luggage. Please answer yes or no',
@@ -252,8 +254,8 @@ bot.dialog('/SentBellboy',[
 
 bot.dialog('/CheckoutDoneCounter',[
     function(session){
-        builder.send('Sorry you would need to check out from our front desk to get your final bill');
-        builder.endDialog();
+        session.send('Sorry you would need to check out from our front desk to get your final bill');
+        session.endDialog();
     }
 ]);
 
