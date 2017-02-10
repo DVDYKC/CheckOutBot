@@ -78,7 +78,6 @@ var intents = new builder.IntentDialog({ recognizers: [recognizer] })
         if (results.response) {
             session.userData.tried =0;
             session.beginDialog('/Checkout');
-            return session.endDialog();
         } else {
             //return session.beginDialog('withoutroomreservations');
             return session.endDialog();
