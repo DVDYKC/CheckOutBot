@@ -37,7 +37,7 @@ bot.dialog('/Checkout',[
             case 2:
                 return session.beginDialog('/RoomNameorBook');
             case 3:
-                session.send('Sorry I cant find your record in our system. Please note that you are only allowed 4 express check out attempt. Kindly provide whose the name your room is booked under? Or your booking confirmatin number?');
+                session.send('Sorry I cant find your record in our system. Please note that you are only allowed 4 express check out attempt.');
                 return session.beginDialog('/RoomNameorBook');
             case 4:
                 session.send('Sorry I cant find your record in our system please proceed to checkout at the front desk');
