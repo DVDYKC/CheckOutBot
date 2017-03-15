@@ -9,15 +9,18 @@ http://docs.botframework.com/builder/node/guides/understanding-natural-language/
 var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 var StringBuilder = require('stringbuilder');
+var dataAccess = require('./data_access');
 
-//var useEmulator = (process.env.NODE_ENV == 'development');
-var useEmulator =true;
+var useEmulator = (process.env.NODE_ENV == 'development');
+//var useEmulator =true;
 var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure.BotServiceConnector({
     appId: process.env['MicrosoftAppId'],
     appPassword: process.env['MicrosoftAppPassword'],
     stateEndpoint: process.env['BotStateEndpoint'],
     openIdMetadata: process.env['BotOpenIdMetadata']
 });
+
+
 
 var bot = new builder.UniversalBot(connector);
 
@@ -53,19 +56,39 @@ bot.dialog('/Checkout',[
         }
         if(session.userData.tried < 4){
             session.send('Please wait while I am processing your checkout');
-            var result = ValidateMe(session.userData.RoomNo,session.userData.Name)
-            if(result == 'A' || result == 'B'){
-                if(result == 'A'){
-                    session.beginDialog('/ConfirmCheckout');
+            // var result = ValidateMe(session.userData.RoomNo,session.userData.Name)
+            // if(result == 'A' || result == 'B'){
+            //     if(result == 'A'){
+            //         session.beginDialog('/ConfirmCheckout');
+            //     }
+            //     if(result == 'B'){
+            //         session.beginDialog('/CheckoutDoneCounter');
+            //     }
+            //     // session.endDialog();
+            // }else{
+            //     session.userData.tried = session.userData.tried + 1;
+            //     session.beginDialog('/Checkout');
+            // }
+            dataAccess.findReservation(session.userData.Name, session.userData.RoomNo, function(err, doc){
+                if(!err)
+                {
+                    if(doc)
+                    {   console.log('Found the data---------------------------');
+                        session.beginDialog('/ConfirmCheckout');
+                    }
+                    else
+                    {
+                        session.userData.tried = session.userData.tried + 1;
+                        session.beginDialog('/Checkout');
+                    }
                 }
-                if(result == 'B'){
-                    session.beginDialog('/CheckoutDoneCounter');
+                else
+                {
+                    console.log('Error retrieving from database---------------------------');
+                    session.send('Error retrieving from database');
+                    session.endDialog();
                 }
-                // session.endDialog();
-            }else{
-                session.userData.tried = session.userData.tried + 1;
-                session.beginDialog('/Checkout');
-            }
+            });
         } else {
             session.send('Sorry I cant find your record in our system please proceed to checkout at the front desk');
             session.endDialog();
@@ -74,16 +97,18 @@ bot.dialog('/Checkout',[
 ]);
 
 function ValidateMe(RoomNo,RoomName){
-    switch(RoomNo + "||" + RoomName){
-        case '8888-1||David':
-            return 'A';
-        case '9999-1||Aimee':
-            return 'B';
-        case 'ABCDE||David':
-            return 'A';
-        default:
-            return 'C';
-    }
+    
+    var result;
+    // switch(RoomNo + "||" + RoomName){
+    //     case '8888-1||David':
+    //         return 'A';
+    //     case '9999-1||Aimee':
+    //         return 'B';
+    //     case 'ABCDE||David':
+    //         return 'A';
+    //     default:
+    //         return 'C';
+    // }
 }
 
 bot.dialog('/RoomName',[
@@ -200,8 +225,13 @@ if (useEmulator) {
     server.listen(3978, function() {
         console.log('test bot endpont at http://localhost:3978/api/messages');
     });
-    server.post('/api/messages', connector.listen());    
+    dataAccess.connectToDb(function(){
+        server.post('/api/messages', connector.listen());
+    });
+    //server.post('/api/messages', connector.listen());    
 } else {
-    module.exports = { default: connector.listen() }
+    dataAccess.connectToDb(function(){
+        module.exports = { default: connector.listen() }
+    }); 
 }
 
