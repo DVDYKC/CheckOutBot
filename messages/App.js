@@ -10,8 +10,8 @@ var builder = require("botbuilder");
 var botbuilder_azure = require("botbuilder-azure");
 var StringBuilder = require('stringbuilder');
 
-var useEmulator = (process.env.NODE_ENV == 'development');
-//var useEmulator =true;
+//var useEmulator = (process.env.NODE_ENV == 'development');
+var useEmulator =true;
 var connector = useEmulator ? new builder.ChatConnector() : new botbuilder_azure.BotServiceConnector({
     appId: process.env['MicrosoftAppId'],
     appPassword: process.env['MicrosoftAppPassword'],
